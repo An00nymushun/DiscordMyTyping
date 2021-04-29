@@ -29,52 +29,50 @@ var Initialized = false;
 var isInTypingUsers = false;
 var TypingUsersContainer;
 var UsersModule;
-var cancelPatches;
 
 function Init(nonInvasive)
 {
-    TypingUsersContainer = BdApi.findModuleByDisplayName('FluxContainer(TypingUsers)');
+	TypingUsersContainer = BdApi.findModuleByDisplayName('FluxContainer(TypingUsers)');
 	if(TypingUsersContainer == null) return 0;
-	
+
 	UsersModule = BdApi.findModuleByProps('getNullableCurrentUser');
 	if(UsersModule == null) return 0;
-	
+
 	Initialized = true;
-    return 1;
+	return 1;
 }
 
 function Start() {
 	if(!Initialized && Init() !== 1) return;
-	
-	
-	cancelPatches = [];
-	cancelPatches[0] = BdApi.monkeyPatch(TypingUsersContainer.prototype, 'render', {
-		after: (data) => {
-			cancelPatches[0] = BdApi.monkeyPatch(data.returnValue.type.prototype, 'render', {
-				before: (data) => { isInTypingUsers = true },
-				after:  (data) => { isInTypingUsers = false }
-			});
-		},
-		once: true
+
+
+	BdApi.Patcher.after('MyTyping', TypingUsersContainer.prototype, 'render', function(thisObj, argsList, returnValue) {
+		BdApi.Patcher.instead('MyTyping', returnValue.type.prototype, 'render', (thisObj, argsList, callOriginal) => {
+			isInTypingUsers = true;
+			let result = callOriginal();
+			isInTypingUsers = false;
+			return result;
+		});
+		this.unpatch();
 	});
-	cancelPatches[1] = BdApi.monkeyPatch(UsersModule, 'getNullableCurrentUser', {
-		after: (data) => { if(isInTypingUsers) data.returnValue = null; }
+	BdApi.Patcher.after('MyTyping', UsersModule, 'getNullableCurrentUser', () => {
+		if(isInTypingUsers) return null;
 	});
 }
 
 function Stop() {
 	if(!Initialized) return;
-	
-	cancelPatches.forEach(x => x());
+
+	BdApi.Patcher.unpatchAll('MyTyping');
 	isInTypingUsers = false;
 }
 
 return function() { return {
 	getName: () => "MyTyping",
 	getDescription: () => "Displays your typing in the chat too",
-	getVersion: () => "1.0",
+	getVersion: () => "1.1",
 	getAuthor: () => "An0",
-	
+
 	start: Start,
 	stop: Stop
 }};
