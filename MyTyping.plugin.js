@@ -30,12 +30,12 @@ var isInTypingUsers = false;
 var TypingUsersContainer;
 var UsersModule;
 
-function Init(nonInvasive)
+function Init()
 {
 	TypingUsersContainer = BdApi.findModuleByDisplayName('FluxContainer(TypingUsers)');
 	if(TypingUsersContainer == null) return 0;
 
-	UsersModule = BdApi.findModuleByProps('getNullableCurrentUser');
+	UsersModule = BdApi.findModuleByProps('getCurrentUser', 'getUser');
 	if(UsersModule == null) return 0;
 
 	Initialized = true;
@@ -55,7 +55,7 @@ function Start() {
 		});
 		this.unpatch();
 	});
-	BdApi.Patcher.after('MyTyping', UsersModule, 'getNullableCurrentUser', () => {
+	BdApi.Patcher.after('MyTyping', UsersModule, 'getCurrentUser', () => {
 		if(isInTypingUsers) return null;
 	});
 }
@@ -70,7 +70,7 @@ function Stop() {
 return function() { return {
 	getName: () => "MyTyping",
 	getDescription: () => "Displays your typing in the chat too",
-	getVersion: () => "1.1",
+	getVersion: () => "1.2",
 	getAuthor: () => "An0",
 
 	start: Start,
